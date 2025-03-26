@@ -16,7 +16,8 @@ SG-Find is designed to help users upload and track missing or found family membe
 
 This project primarily aims to showcase AWS knowledge in a small, production-like environment with minimal operational overhead.
 # Architecture
-https://github.com/T4ctician/sg-find/blob/main/Architecture.drawio.png
+![Architecture drawio](https://github.com/user-attachments/assets/9302fc5a-6eb7-4d61-9fd3-55ae6f4e8c20)
+
 1. Amazon S3
 
 - Static Web Hosting: Serves the HTML, JavaScript, and CSS for the SG-Find front end.
