@@ -3,7 +3,16 @@ SG-Find is a serverless solution for securely registering and locating missing f
 
 # Table of Contents
 [Overview](https://github.com/T4ctician/sg-find/tree/main?tab=readme-ov-file#overview)
-
+[Architecture](https://github.com/T4ctician/sg-find/tree/main?tab=readme-ov-file#architecture)
+[Features](https://github.com/T4ctician/sg-find/tree/main?tab=readme-ov-file#features)
+[Demo](https://github.com/T4ctician/sg-find/tree/main?tab=readme-ov-file#demo)
+[Getting Started](https://github.com/T4ctician/sg-find/tree/main?tab=readme-ov-file#getting-started)
+[Prerequisites](https://github.com/T4ctician/sg-find/tree/main?tab=readme-ov-file#prerequisites)
+[Setup & Deployment](https://github.com/T4ctician/sg-find/tree/main?tab=readme-ov-file#setup--deployment)
+[Usage](https://github.com/T4ctician/sg-find/tree/main?tab=readme-ov-file#usage)
+[Testing](https://github.com/T4ctician/sg-find/tree/main?tab=readme-ov-file#testing)
+[Limitations & Future Improvements](https://github.com/T4ctician/sg-find/tree/main?tab=readme-ov-file#limitations--future-improvements)
+[License](https://github.com/T4ctician/sg-find/tree/main?tab=readme-ov-file#license)
 
 # Overview
 SG-Find is designed to help users upload and track missing or found family members. It demonstrates:
@@ -44,8 +53,6 @@ This project primarily aims to showcase AWS knowledge in a small, production-lik
 
 - Accepts metadata (owner_id, family_member_name, etc.) and writes it to DynamoDB.
 
-- Security & Validation: Sanitizes inputs, checks required fields, and can integrate further checks (e.g., file size).
-
 4. Amazon DynamoDB
 
 - Metadata Storage: Saves attributes such as owner_id, family_member_name, purpose, image_url, timestamps, etc.
@@ -58,19 +65,20 @@ This project primarily aims to showcase AWS knowledge in a small, production-lik
 
 - Decoupling: Keeps the system responsive by offloading longer-running tasks from the main request flow.
 
-6. Amazon Rekognition (Optional)
+6. Amazon Rekognition
 
 - Face Recognition: If enabled, images can be sent to Rekognition to identify or match family member faces.
 
 - Integration: Typically triggered via SQS, allowing real-time or near-real-time face matching without blocking the user upload process.
 
-7. Amazon SES (Optional)
+7. Amazon SES
 
 - Email Notifications: Can send automated emails to owners when a missing family member is matched or found.
 
 - Integration: Invoked by Lambda (or via SQS), allowing for confirmations, status updates, or other custom alerts.
 # Features
-# Demo (Optional)
+
+# Demo
 # Getting Started
 # Prerequisites
 # Setup & Deployment
