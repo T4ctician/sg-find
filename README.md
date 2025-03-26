@@ -3,15 +3,25 @@ SG-Find is a serverless solution for securely registering and locating missing f
 
 # Table of Contents
 [Overview](https://github.com/T4ctician/sg-find/tree/main?tab=readme-ov-file#overview)
+
 [Architecture](https://github.com/T4ctician/sg-find/tree/main?tab=readme-ov-file#architecture)
+
 [Features](https://github.com/T4ctician/sg-find/tree/main?tab=readme-ov-file#features)
+
 [Demo](https://github.com/T4ctician/sg-find/tree/main?tab=readme-ov-file#demo)
+
 [Getting Started](https://github.com/T4ctician/sg-find/tree/main?tab=readme-ov-file#getting-started)
+
 [Prerequisites](https://github.com/T4ctician/sg-find/tree/main?tab=readme-ov-file#prerequisites)
+
 [Setup & Deployment](https://github.com/T4ctician/sg-find/tree/main?tab=readme-ov-file#setup--deployment)
+
 [Usage](https://github.com/T4ctician/sg-find/tree/main?tab=readme-ov-file#usage)
+
 [Testing](https://github.com/T4ctician/sg-find/tree/main?tab=readme-ov-file#testing)
+
 [Limitations & Future Improvements](https://github.com/T4ctician/sg-find/tree/main?tab=readme-ov-file#limitations--future-improvements)
+
 [License](https://github.com/T4ctician/sg-find/tree/main?tab=readme-ov-file#license)
 
 # Overview
