@@ -18,7 +18,7 @@ This project primarily aims to showcase AWS knowledge in a small, production-lik
 # Architecture
 
 # Features
-#Demo (Optional)
+# Demo (Optional)
 # Getting Started
 # Prerequisites
 # Setup & Deployment
