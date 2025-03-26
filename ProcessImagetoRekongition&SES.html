@@ -20,10 +20,10 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 # Environment variables
-DYNAMODB_TABLE_NAME = os.environ.get("DYNAMODB_TABLE_NAME", "Pets")
-REKOGNITION_COLLECTION_ID = os.environ.get("REKOGNITION_COLLECTION_ID", "HumanFacesCollection")
+DYNAMODB_TABLE_NAME = os.environ.get("DYNAMODB_TABLE_NAME", "") # Replace with your DynamoDB Table Name
+REKOGNITION_COLLECTION_ID = os.environ.get("REKOGNITION_COLLECTION_ID", "") # Replace with your Collection Name
 SIMILARITY_THRESHOLD = float(os.environ.get("SIMILARITY_THRESHOLD", 80.0))  # Adjust as needed
-SES_SENDER_EMAIL = os.environ.get("SES_SENDER_EMAIL", "kennytwk.api+petnotification@gmail.com")  # Verified SES email
+SES_SENDER_EMAIL = os.environ.get("SES_SENDER_EMAIL", "")  # Verified SES email
 
 def parse_s3_url(s3_url):
     """
