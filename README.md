@@ -1,12 +1,10 @@
 # sg-find
-SG-Find is a serverless solution for registering and locating missing family members using AWS services. This project demonstrates core AWS knowledge—building a complete serverless pipeline with Amazon API Gateway, AWS Lambda,Amazon Rekognition, Amazon Simple Email Service, Amazon Simple Queue Service, Amazon DynamoDB and Amazon S3.
+SG-Find is a serverless solution for registering and locating missing family members using AWS services. This project demonstrates core AWS knowledge—building a complete serverless pipeline with Amazon API Gateway, AWS Lambda, Amazon Rekognition, Amazon Simple Email Service, Amazon Simple Queue Service, Amazon DynamoDB and Amazon S3.
 
 # Table of Contents
 [Overview](https://github.com/T4ctician/sg-find/tree/main?tab=readme-ov-file#overview)
 
 [Architecture](https://github.com/T4ctician/sg-find/tree/main?tab=readme-ov-file#architecture)
-
-[Features](https://github.com/T4ctician/sg-find/tree/main?tab=readme-ov-file#features)
 
 [Demo](https://github.com/T4ctician/sg-find/tree/main?tab=readme-ov-file#demo)
 
@@ -86,8 +84,6 @@ This project primarily aims to showcase AWS knowledge in a small, production-lik
 - Email Notifications: Can send automated emails to owners when a missing family member is matched or found.
 
 - Integration: Invoked by Lambda (or via SQS), allowing for confirmations, status updates, or other custom alerts.
-# Features
-
 # Demo
 # Getting Started
 # Prerequisites
