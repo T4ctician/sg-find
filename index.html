@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pet Information Uploader</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    h1, h2 {
+      color: #333;
+    }
+    label {
+      display: block;
+      margin: 10px 0 5px;
+      font-weight: bold;
+    }
+    .required::after {
+      content: " *";
+      color: red;
+      font-weight: bold;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+	input[readonly] {
+      background-color: #f3f3f3;
+    }				 
+    button {
+      background-color: #28a745;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #218838;
+    }
+    pre {
+      background-color: #f8f9fa;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .form-section {
+      margin-bottom: 30px;
+    }
+    .hidden {
+      display: none;
+    }
+    /* Loader Styling */
+    #loader {
+      font-size: 18px;
+      color: #555;
+      margin-bottom: 15px;
+      display: none;
+    }
+    /* Image Preview Styling */
+    #imagePreview {
+      max-width: 25%;
+      height: auto;
+      margin-bottom: 15px;
+      display: none;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Pet Information Uploader</h1>
+  <form id="uploadForm">
+    <!-- Purpose Section -->
+    <div class="form-section">
+      <h2>Select Purpose</h2>
+      <label for="purpose" class="required">Purpose:</label>
+      <select id="purpose" name="purpose" required onchange="toggleFormSections()">
+        <option value="">-</option>
+        <option value="register_pet">Registered User: Register Pet</option>
+        <option value="report_missing_pet">Registered User: Report Missing Pet</option>
+        <option value="report_found_pet">Unregistered User: Report Found Pet</option>
+      </select>
+    </div>
+
+    <!-- Upload Image Section -->
+    <div class="form-section">
+      <h2>Upload Pet Image</h2>
+      <label for="file" class="required">Select Image:</label>
+      <input type="file" id="file" name="file" accept="image/*" required>
+      <!-- Image Preview -->
+      <img id="imagePreview" src="#" alt="Image Preview" />
+    </div>
+
+    <!-- Pet Metadata Section -->
+    <div class="form-section hidden" id="petMetadata">
+      <h2>Pet Metadata</h2>
+      <label for="petName" class="required">Pet Name:</label>
+      <input type="text" id="petName" name="petName" placeholder="Enter pet name" required>
+    </div>
+
+    <!-- Owner Metadata Section -->
+    <div class="form-section hidden" id="ownerMetadata">
+      <h2>Owner Metadata</h2>
+      <label for="ownerId" class="required">Owner ID:</label>
+      <input type="text" id="ownerId" name="ownerId" placeholder="Enter owner ID" required>
+
+      <label for="ownerName" class="required">Owner Name:</label>
+      <input type="text" id="ownerName" name="ownerName" placeholder="Enter owner name" required>
+
+      <label for="ownerContact" class="required">Owner Contact:</label>
+      <input type="email" id="ownerContact" name="ownerContact" placeholder="Enter owner contact email" required>
+    </div>
+
+    <!-- Loader -->
+    <div id="loader">Uploading... Please wait.</div>
+
+    <!-- Submit Button -->
+    <button type="button" id="submitButton" onclick="uploadImage()" disabled>Upload and Save</button>
+  </form>
+
+  <!-- Response Section -->
+  <h2>Response</h2>
+  <pre id="response"></pre>
+
+  <script>
+    // Configuration: Replace with your actual API Gateway endpoints
+    const S3_ENDPOINT = 'https://e9949mau7g.execute-api.us-east-1.amazonaws.com/test/upload_image'; // S3 PUT Endpoint
+    const DYNAMODB_ENDPOINT = 'https://vm6xrmq787.execute-api.us-east-1.amazonaws.com/test/insertuser'; // DynamoDB POST Endpoint
+
+    /**
+     * Function to toggle the visibility of form sections based on selected purpose.
+     */
+    function toggleFormSections() {
+      const purpose = document.getElementById("purpose").value;
+      const ownerMetadataSection = document.getElementById("ownerMetadata");
+      const petMetadataSection = document.getElementById("petMetadata");
+
+      if (purpose === "register_pet" || purpose === "report_missing_pet") {
+        ownerMetadataSection.classList.remove("hidden");
+        petMetadataSection.classList.remove("hidden");
+        // Set required attributes
+        document.getElementById("ownerId").required = true;
+        document.getElementById("ownerName").required = true;
+        document.getElementById("ownerContact").required = true;
+        document.getElementById("petName").required = true;
+      } else if (purpose === "report_found_pet") {
+        ownerMetadataSection.classList.add("hidden");
+        petMetadataSection.classList.add("hidden");
+        // Remove required attributes
+        document.getElementById("ownerId").required = false;
+        document.getElementById("ownerName").required = false;
+        document.getElementById("ownerContact").required = false;
+        document.getElementById("petName").required = false;
+      }
+
+      // Validate form whenever purpose changes
+      validateForm();
+    }
+
+    /**
+     * Function to validate form inputs and enable/disable the submit button.
+     */
+	function validateForm() {
+	  const purpose = document.getElementById("purpose").value;
+	  const ownerId = document.getElementById("ownerId").value.trim();
+	  const ownerName = document.getElementById("ownerName").value.trim();
+	  const ownerContact = document.getElementById("ownerContact").value.trim();
+	  const petName = document.getElementById("petName").value.trim();
+	  const fileInput = document.getElementById("file").files.length > 0;
+
+	  let isValid = true;
+
+	  // Check if purpose is selected
+	  if (!purpose) isValid = false;
+
+	  // For specific purposes, ensure owner information is provided
+	  if (purpose === "register_pet" || purpose === "report_missing_pet") {
+		if (!ownerId || !ownerName || !ownerContact || !petName) isValid = false;
+	  }
+
+	  // For unregistered users, pet_name can be empty (will default to "unknown")
+	  if (purpose === "report_found_pet" && !fileInput) isValid = false;
+
+	  // Ensure an image file is selected
+	  if (!fileInput) isValid = false;
+
+	  // Enable or disable the submit button based on validation
+	  document.getElementById("submitButton").disabled = !isValid;
+	}
+
+
+    /**
+     * Add event listeners to form inputs to trigger validation on input.
+     */
+    document.getElementById("uploadForm").addEventListener("input", validateForm);
+
+    /**
+     * Function to display an image preview when a file is selected.
+     */
+    document.getElementById("file").addEventListener('change', function() {
+      const file = this.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const img = document.getElementById('imagePreview');
+          img.src = e.target.result;
+          img.style.display = 'block';
+        }
+        reader.readAsDataURL(file);
+      } else {
+        document.getElementById('imagePreview').style.display = 'none';
+      }
+    });
+
+    /**
+     * Validates email format.
+     * @param {string} email - Email address to validate.
+     * @returns {boolean} - Returns true if email is valid, else false.
+     */
+    function validateEmail(email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return emailRegex.test(email);
+    }
+
+    /**
+     * Function to handle the upload and save process.
+     */
+    async function uploadImage() {
+      const purpose = document.getElementById("purpose").value;
+
+      // Validate purpose selection
+      if (!purpose) {
+        alert("Please select a purpose.");
+        return;
+      }
+
+      const fileInput = document.getElementById("file");
+      const petNameRaw = document.getElementById("petName").value.trim();
+      const ownerIdRaw = document.getElementById("ownerId").value.trim();
+      const ownerName = document.getElementById("ownerName").value.trim();
+      const ownerContact = document.getElementById("ownerContact").value.trim();
+      
+      // Sanitize inputs
+      const sanitizeInput = (input) => {
+        return input.replace(/[`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '');
+      };
+
+      const ownerId = sanitizeInput(ownerIdRaw) || "unregistered";
+	  
+	   // Conditionally set petName based on registration status
+	  let petName = sanitizeInput(petNameRaw);
+	  if (ownerId === "unregistered" && !petName) {
+		petName = "unknown";
+		console.log("Set petName to 'unknown' for unregistered user.");
+	  }
+	  
+      console.log("Purpose:", purpose);
+      console.log("Owner ID:", ownerId);
+      console.log("Pet Name:", petName);
+      console.log("Owner Name:", ownerName);
+      console.log("Owner Contact:", ownerContact);
+
+
+      // Validate file selection
+      if (!fileInput.files.length) {
+        alert("Please select a file to upload.");
+        return;
+      }
+
+      const file = fileInput.files[0];
+
+      // Validate owner's contact email if provided
+      if ((purpose === "register_pet" || purpose === "report_missing_pet") && ownerContact && !validateEmail(ownerContact)) {
+        alert("Please enter a valid contact email.");
+        return;
+      }
+
+      try {
+        // Show loader
+        document.getElementById('loader').style.display = 'block';
+        document.getElementById("response").textContent = ''; // Clear previous responses
+
+        // Step 1: Upload Image to S3 via PUT Request
+        const s3Response = await fetch(`${S3_ENDPOINT}?user_id=${encodeURIComponent(ownerId)}&pet_name=${encodeURIComponent(petName)}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': file.type, // Set the correct MIME type
+          },
+          body: file, // Binary image data
+        });
+
+        if (!s3Response.ok) {
+          const errorData = await s3Response.json();
+          throw new Error(errorData.error || "Failed to upload the image to S3.");
+        }
+
+        const s3Result = await s3Response.json();
+        const fileUrl = s3Result.file_url;
+
+        // Step 2: Save Metadata to DynamoDB via POST Request
+        const metadata = {
+          purpose: purpose,
+          pet_name: petName || "unknown",
+          owner_id: ownerId,
+          owner_name: ownerName || "",
+          owner_contact: ownerContact || "",
+          image_url: fileUrl,
+        };
+
+        const dynamoResponse = await fetch(DYNAMODB_ENDPOINT, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json', // JSON payload
+          },
+          body: JSON.stringify(metadata),
+        });
+
+        if (!dynamoResponse.ok) {
+          const errorData = await dynamoResponse.json();
+          throw new Error(errorData.error || "Failed to save metadata to DynamoDB.");
+        }
+
+        const dynamoResult = await dynamoResponse.json();
+
+        // Display Combined Response
+        document.getElementById("response").textContent = JSON.stringify({
+          s3Result,
+          dynamoResult,
+        }, null, 2);
+
+        // User Feedback
+        alert("Upload and save successful!");
+
+        // Reset the form and hide image preview
+        document.getElementById("uploadForm").reset();
+        document.getElementById("imagePreview").style.display = 'none';
+        toggleFormSections(); // Hide metadata sections if necessary
+
+      } catch (error) {
+        // Display error message
+        document.getElementById("response").textContent = `Error: ${error.message}`;
+        alert(`Error: ${error.message}`);
+      } finally {
+        // Hide loader
+        document.getElementById('loader').style.display = 'none';
+      }
+    }
+  </script>
+</body>
+</html>
