@@ -17,9 +17,9 @@ dynamodb = boto3.resource('dynamodb')
 sqs = boto3.client('sqs')
 
 # Configuration: Environment Variables
-S3_BUCKET_NAME = os.environ.get("S3_BUCKET_NAME", "api-gateway-uploaded-image")
-DYNAMODB_TABLE_NAME = os.environ.get("DYNAMODB_TABLE_NAME", "Pets")  # Keeping existing table name
-SQS_QUEUE_URL = os.environ.get("SQS_QUEUE_URL", "https://sqs.us-east-1.amazonaws.com/640168445668/PetProcessingQueue")  # Replace with your SQS queue URL
+S3_BUCKET_NAME = os.environ.get("S3_BUCKET_NAME", "") # Replace with your S3 Bucket name
+DYNAMODB_TABLE_NAME = os.environ.get("DYNAMODB_TABLE_NAME", "") # Replace with your Dynamo table name 
+SQS_QUEUE_URL = os.environ.get("SQS_QUEUE_URL", "")  # Replace with your SQS queue URL
 
 def lambda_handler(event, context):
     try:
