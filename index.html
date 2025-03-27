@@ -72,7 +72,6 @@
       border: 1px solid #ccc;
       border-radius: 5px;
     }
-
   </style>
 </head>
 <body>
@@ -137,9 +136,48 @@
   <pre id="response"></pre>
 
   <script>
-    // Configuration: Replace with your actual API Gateway endpoints
+    // -------------------------------
+    // Configuration / Constants
+    // -------------------------------
     const S3_ENDPOINT = 'https://e9949mau7g.execute-api.us-east-1.amazonaws.com/test/upload_image'; // S3 PUT Endpoint
     const DYNAMODB_ENDPOINT = 'https://vm6xrmq787.execute-api.us-east-1.amazonaws.com/test/insertuser'; // DynamoDB POST Endpoint
+    
+    // File size constants
+    const MAX_FILE_SIZE = 7 * 1024 * 1024;          // 7 MB
+    const COMPRESSION_THRESHOLD = 4 * 1024 * 1024;  // 4 MB
+    
+    /**
+     * Compress the image if above COMPRESSION_THRESHOLD
+     */
+    async function compressImage(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const img = new Image();
+          img.src = reader.result;
+          img.onload = () => {
+            // Create a canvas and draw the image, compress
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const maxWidth = 1024;
+            const scaleFactor = maxWidth / img.width;
+            canvas.width = maxWidth;
+            canvas.height = img.height * scaleFactor;
+            
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob(
+              (blob) => {
+                resolve(blob);
+              },
+              'image/jpeg',
+              1.0
+            );
+          };
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
 
     /**
      * Function to toggle the visibility of form sections based on selected purpose.
@@ -236,6 +274,13 @@
     }
 
     /**
+     * Sanitize inputs
+     */
+    function sanitizeInput(input) {
+      return input.replace(/[`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '');
+    }
+
+    /**
      * Function to handle the upload and save process.
      */
     async function uploadImage() {
@@ -247,43 +292,50 @@
         return;
       }
 
+      // Check file selection
       const fileInput = document.getElementById("file");
+      if (!fileInput.files.length) {
+        alert("Please select a file to upload.");
+        return;
+      }
+
+      let file = fileInput.files[0];
+
+      // *** 1) Check File Size (Max: 7 MB) ***
+      if (file.size > MAX_FILE_SIZE) {
+        alert("File size exceeds 7 MB. Please choose a smaller image.");
+        return;
+      }
+
+      // *** 2) Compress if over 4 MB but under/equal 7 MB ***
+      if (file.size > COMPRESSION_THRESHOLD) {
+        file = await compressImage(file);
+      }
+
+      // Collect form data
       const familyMemberNameRaw = document.getElementById("familyMemberName").value.trim();
       const ownerIdRaw = document.getElementById("ownerId").value.trim();
       const ownerName = document.getElementById("ownerName").value.trim();
       const ownerContact = document.getElementById("ownerContact").value.trim();
-      
-      // Sanitize inputs
-      const sanitizeInput = (input) => {
-        return input.replace(/[`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '');
-      };
 
+      // Sanitize
       const ownerId = sanitizeInput(ownerIdRaw) || "unregistered";
-      
-      // Conditionally set familyMemberName based on registration status
       let familyMemberName = sanitizeInput(familyMemberNameRaw);
       if (ownerId === "unregistered" && !familyMemberName) {
         familyMemberName = "unknown";
         console.log("Set familyMemberName to 'unknown' for unregistered user.");
       }
-      
+
       console.log("Purpose:", purpose);
       console.log("Owner ID:", ownerId);
       console.log("Family Member Name:", familyMemberName);
       console.log("Owner Name:", ownerName);
       console.log("Owner Contact:", ownerContact);
 
-
-      // Validate file selection
-      if (!fileInput.files.length) {
-        alert("Please select a file to upload.");
-        return;
-      }
-
-      const file = fileInput.files[0];
-
-      // Validate owner's contact email if provided
-      if ((purpose === "register_family_member" || purpose === "report_missing_family_member") && ownerContact && !validateEmail(ownerContact)) {
+      // Validate owner's contact email if needed
+      if ((purpose === "register_family_member" || purpose === "report_missing_family_member") 
+          && ownerContact 
+          && !validateEmail(ownerContact)) {
         alert("Please enter a valid contact email.");
         return;
       }
@@ -293,24 +345,28 @@
         document.getElementById('loader').style.display = 'block';
         document.getElementById("response").textContent = ''; // Clear previous responses
 
-        // Step 1: Upload Image to S3 via PUT Request
-        const s3Response = await fetch(`${S3_ENDPOINT}?user_id=${encodeURIComponent(ownerId)}&family_member_name=${encodeURIComponent(familyMemberName)}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': file.type, // Set the correct MIME type
-          },
-          body: file, // Binary image data
-        });
+        // STEP 1: Upload Image to S3 via PUT Request
+        const s3Response = await fetch(
+          `${S3_ENDPOINT}?user_id=${encodeURIComponent(ownerId)}&family_member_name=${encodeURIComponent(familyMemberName)}`,
+          {
+            method: 'PUT',
+            headers: {
+              'Content-Type': file.type, // The correct MIME type
+            },
+            body: file, // Binary image data
+          }
+        );
 
         if (!s3Response.ok) {
           const errorData = await s3Response.json();
           throw new Error(errorData.error || "Failed to upload the image to S3.");
         }
 
+        // Parse S3 response
         const s3Result = await s3Response.json();
         const fileUrl = s3Result.file_url;
 
-        // Step 2: Save Metadata to DynamoDB via POST Request
+        // STEP 2: Save Metadata to DynamoDB via POST Request
         const metadata = {
           purpose: purpose,
           family_member_name: familyMemberName || "unknown",
@@ -336,10 +392,11 @@
         const dynamoResult = await dynamoResponse.json();
 
         // Display Combined Response
-        document.getElementById("response").textContent = JSON.stringify({
-          s3Result,
-          dynamoResult,
-        }, null, 2);
+        document.getElementById("response").textContent = JSON.stringify(
+          { s3Result, dynamoResult },
+          null,
+          2
+        );
 
         // User Feedback
         alert("Upload and save successful!");
