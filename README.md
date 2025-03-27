@@ -86,11 +86,11 @@ This project primarily aims to showcase AWS knowledge in a small, production-lik
 
 - Setup & Deployment
   1. Clone or Download This Repository
-     '''
+     ```git
      git clone https://github.com/your-account/sg-find.git
      cd sg-find
-     '''
-  2. Create an S3 Bucket
+     ```
+  3. Create an S3 Bucket
     1. Enable Static Website Hosting on the bucket.
     2. Upload index.html to this bucket.
     3. Restrict public access / configure your bucket policy as needed.
@@ -123,9 +123,9 @@ This project primarily aims to showcase AWS knowledge in a small, production-lik
 # Usage
 1. Open the Web Page
    - Navigate to your S3 bucket’s static hosting URL, e.g.:
-     '''
+     ```html
      https://your-bucket.s3.amazonaws.com/index.html
-     '''
+     ```
 2. Select Purpose
    - register_family_member, report_missing_family_member, or report_found_family_member.
 3. Fill Out the Form
