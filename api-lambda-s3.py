@@ -17,8 +17,8 @@ dynamodb = boto3.resource('dynamodb')
 sqs = boto3.client('sqs')
 
 # Configuration: Environment Variables
-S3_BUCKET_NAME = os.environ.get("S3_BUCKET_NAME", "") # Replace with your S3 Bucket name
-DYNAMODB_TABLE_NAME = os.environ.get("DYNAMODB_TABLE_NAME", "") # Replace with your Dynamo table name 
+S3_BUCKET_NAME = os.environ.get("S3_BUCKET_NAME", "") # Replace with your S3 bucket name
+DYNAMODB_TABLE_NAME = os.environ.get("DYNAMODB_TABLE_NAME", "") # Replace with your DynamoDB table name
 SQS_QUEUE_URL = os.environ.get("SQS_QUEUE_URL", "")  # Replace with your SQS queue URL
 
 def lambda_handler(event, context):
