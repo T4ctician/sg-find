@@ -20,10 +20,10 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 # Environment variables
-DYNAMODB_TABLE_NAME = os.environ.get("DYNAMODB_TABLE_NAME", "Pets")  # Keep existing table name
-REKOGNITION_COLLECTION_ID = os.environ.get("REKOGNITION_COLLECTION_ID", "HumanFacesCollection")
+DYNAMODB_TABLE_NAME = os.environ.get("DYNAMODB_TABLE_NAME", "") # Replace with your DynamoDB table name
+REKOGNITION_COLLECTION_ID = os.environ.get("REKOGNITION_COLLECTION_ID", "") # Replace with your Rekognition collection id
 SIMILARITY_THRESHOLD = float(os.environ.get("SIMILARITY_THRESHOLD", 80.0))  # Adjust as needed
-SES_SENDER_EMAIL = os.environ.get("SES_SENDER_EMAIL", "kennytwk.api+familynotification@gmail.com")  # Verified SES email
+SES_SENDER_EMAIL = os.environ.get("SES_SENDER_EMAIL", "")  # Replace with your verified SES email
 
 def parse_s3_url(s3_url):
     """
@@ -176,15 +176,15 @@ def send_email(recipient, owner_name, subject, body, attachment_bytes, attachmen
 
 def get_owner_details(owner_id, family_member_id):
     """
-    Retrieve the owner's contact email and name from the Pets table based on owner_id and family_member_id.
+    Retrieve the owner's contact email and name from the family table based on owner_id and family_member_id.
     For unregistered users (owner_id='unregistered'), use family_member_id to find the registered owner.
     """
     try:
-        pets_table = dynamodb.Table(DYNAMODB_TABLE_NAME)  # Should be 'Pets'
+        family = dynamodb.Table(DYNAMODB_TABLE_NAME)  # Should be 'family'
         
         if owner_id != "unregistered":
             # Registered user report
-            response = pets_table.get_item(
+            response = family.get_item(
                 Key={
                     'owner_id': owner_id,
                     'family_member_id': family_member_id
@@ -192,7 +192,7 @@ def get_owner_details(owner_id, family_member_id):
             )
         else:
             # Unregistered user report - find registered owner via family_member_id using GSI
-            response = pets_table.query(
+            response = family.query(
                 IndexName='family_member_id-index',  # Ensure this matches your GSI name
                 KeyConditionExpression=boto3.dynamodb.conditions.Key('family_member_id').eq(family_member_id)
             )
@@ -284,7 +284,7 @@ def lambda_handler(event, context):
                                 recipient=owner_details['email'],
                                 owner_name=owner_details['name'],
                                 subject="Family Member Processing Update: New Face Indexed",
-                                body=f"Dear {owner_details['name']},\n\nYour family member '{family_member_name}' has been successfully processed. A new face has been indexed for future recognition.\n\nBest Regards,\nFamilyFinders Team",
+                                body=f"Dear {owner_details['name']},\n\nYour family member '{family_member_name}' has been successfully processed. A new face has been indexed for future recognition.\n\nBest Regards,\nSG Find Team",
                                 attachment_bytes=image_bytes,
                                 attachment_filename=key.split('/')[-1]  # Extract filename from key
                             )
@@ -297,7 +297,7 @@ def lambda_handler(event, context):
                                 recipient=owner_details['email'],
                                 owner_name=owner_details['name'],
                                 subject="Family Member Processing Error: Face Indexing Failed",
-                                body=f"Dear {owner_details['name']},\n\nThere was an error indexing your family member '{family_member_name}'s face for future recognition.\n\nPlease try processing the image again.\n\nBest Regards,\nFamilyFinders Team",
+                                body=f"Dear {owner_details['name']},\n\nThere was an error indexing your family member '{family_member_name}'s face for future recognition.\n\nPlease try processing the image again.\n\nBest Regards,\nSG Find Team",
                                 attachment_bytes=image_bytes,
                                 attachment_filename=key.split('/')[-1]
                             )
@@ -316,7 +316,7 @@ def lambda_handler(event, context):
                                 recipient=owner_details['email'],
                                 owner_name=owner_details['name'],
                                 subject="Family Member Processing Update: Family Member Found",
-                                body=f"Dear {owner_details['name']},\n\nGreat news! Your family member '{family_member_name}' has been found with a confidence level of {similarity:.2f}%.\n\nBest Regards,\nFamilyFinders Team",
+                                body=f"Dear {owner_details['name']},\n\nGreat news! Your family member '{family_member_name}' has been found with a confidence level of {similarity:.2f}%.\n\nBest Regards,\nSG Find Team",
                                 attachment_bytes=image_bytes,
                                 attachment_filename=key.split('/')[-1]
                             )
@@ -339,7 +339,7 @@ def lambda_handler(event, context):
                                 recipient=owner_details['email'],
                                 owner_name=owner_details['name'],
                                 subject="Family Member Processing Update: Family Member Found",
-                                body=f"Dear {owner_details['name']},\n\nA family member matching your missing family member '{family_member_name}' has been found with a confidence level of {similarity:.2f}%.\n\nBest Regards,\nFamilyFinders Team",
+                                body=f"Dear {owner_details['name']},\n\nA family member matching your missing family member '{family_member_name}' has been found with a confidence level of {similarity:.2f}%.\n\nBest Regards,\nSG Find Team",
                                 attachment_bytes=image_bytes,
                                 attachment_filename=key.split('/')[-1]
                             )
