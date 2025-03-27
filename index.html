@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Pet Information Uploader</title>
+  <title>Family Member Information Uploader</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -30,9 +30,9 @@
       border: 1px solid #ccc;
       border-radius: 5px;
     }
-	input[readonly] {
+    input[readonly] {
       background-color: #f3f3f3;
-    }				 
+    }          
     button {
       background-color: #28a745;
       color: white;
@@ -72,37 +72,44 @@
       border: 1px solid #ccc;
       border-radius: 5px;
     }
+
   </style>
 </head>
 <body>
-  <h1>Pet Information Uploader</h1>
+  <h1>Welcome to SG Find - Family Member Information Uploader</h1>
+  <h2>A secure and simple way to register and locate your loved ones</h2>
+  
+  <!-- Add empty rows (spaces) -->
+  <div style="height: 20px;"></div>
+  <div style="height: 20px;"></div>
+
   <form id="uploadForm">
     <!-- Purpose Section -->
-    <div class="form-section">
+    <div class="form-section select-purpose">
       <h2>Select Purpose</h2>
       <label for="purpose" class="required">Purpose:</label>
       <select id="purpose" name="purpose" required onchange="toggleFormSections()">
         <option value="">-</option>
-        <option value="register_pet">Registered User: Register Pet</option>
-        <option value="report_missing_pet">Registered User: Report Missing Pet</option>
-        <option value="report_found_pet">Unregistered User: Report Found Pet</option>
+        <option value="register_family_member">Registered User: Register Family Member</option>
+        <option value="report_missing_family_member">Registered User: Report Missing Family Member</option>
+        <option value="report_found_family_member">Unregistered User: Report Found Family Member</option>
       </select>
     </div>
 
     <!-- Upload Image Section -->
     <div class="form-section">
-      <h2>Upload Pet Image</h2>
+      <h2>Upload Family Member Image</h2>
       <label for="file" class="required">Select Image:</label>
       <input type="file" id="file" name="file" accept="image/*" required>
       <!-- Image Preview -->
       <img id="imagePreview" src="#" alt="Image Preview" />
     </div>
 
-    <!-- Pet Metadata Section -->
-    <div class="form-section hidden" id="petMetadata">
-      <h2>Pet Metadata</h2>
-      <label for="petName" class="required">Pet Name:</label>
-      <input type="text" id="petName" name="petName" placeholder="Enter pet name" required>
+    <!-- Family Member Metadata Section -->
+    <div class="form-section hidden" id="familyMemberMetadata">
+      <h2>Family Member Metadata</h2>
+      <label for="familyMemberName" class="required">Family Member Name:</label>
+      <input type="text" id="familyMemberName" name="familyMemberName" placeholder="Enter family member name" required>
     </div>
 
     <!-- Owner Metadata Section -->
@@ -131,8 +138,8 @@
 
   <script>
     // Configuration: Replace with your actual API Gateway endpoints
-    const S3_ENDPOINT = ''; // S3 PUT Endpoint
-    const DYNAMODB_ENDPOINT = ''; // DynamoDB POST Endpoint
+    const S3_ENDPOINT = 'https://e9949mau7g.execute-api.us-east-1.amazonaws.com/test/upload_image'; // S3 PUT Endpoint
+    const DYNAMODB_ENDPOINT = 'https://vm6xrmq787.execute-api.us-east-1.amazonaws.com/test/insertuser'; // DynamoDB POST Endpoint
 
     /**
      * Function to toggle the visibility of form sections based on selected purpose.
@@ -140,24 +147,24 @@
     function toggleFormSections() {
       const purpose = document.getElementById("purpose").value;
       const ownerMetadataSection = document.getElementById("ownerMetadata");
-      const petMetadataSection = document.getElementById("petMetadata");
+      const familyMemberMetadataSection = document.getElementById("familyMemberMetadata");
 
-      if (purpose === "register_pet" || purpose === "report_missing_pet") {
+      if (purpose === "register_family_member" || purpose === "report_missing_family_member") {
         ownerMetadataSection.classList.remove("hidden");
-        petMetadataSection.classList.remove("hidden");
+        familyMemberMetadataSection.classList.remove("hidden");
         // Set required attributes
         document.getElementById("ownerId").required = true;
         document.getElementById("ownerName").required = true;
         document.getElementById("ownerContact").required = true;
-        document.getElementById("petName").required = true;
-      } else if (purpose === "report_found_pet") {
+        document.getElementById("familyMemberName").required = true;
+      } else if (purpose === "report_found_family_member") {
         ownerMetadataSection.classList.add("hidden");
-        petMetadataSection.classList.add("hidden");
+        familyMemberMetadataSection.classList.add("hidden");
         // Remove required attributes
         document.getElementById("ownerId").required = false;
         document.getElementById("ownerName").required = false;
         document.getElementById("ownerContact").required = false;
-        document.getElementById("petName").required = false;
+        document.getElementById("familyMemberName").required = false;
       }
 
       // Validate form whenever purpose changes
@@ -167,34 +174,33 @@
     /**
      * Function to validate form inputs and enable/disable the submit button.
      */
-	function validateForm() {
-	  const purpose = document.getElementById("purpose").value;
-	  const ownerId = document.getElementById("ownerId").value.trim();
-	  const ownerName = document.getElementById("ownerName").value.trim();
-	  const ownerContact = document.getElementById("ownerContact").value.trim();
-	  const petName = document.getElementById("petName").value.trim();
-	  const fileInput = document.getElementById("file").files.length > 0;
+    function validateForm() {
+      const purpose = document.getElementById("purpose").value;
+      const ownerId = document.getElementById("ownerId").value.trim();
+      const ownerName = document.getElementById("ownerName").value.trim();
+      const ownerContact = document.getElementById("ownerContact").value.trim();
+      const familyMemberName = document.getElementById("familyMemberName").value.trim();
+      const fileInput = document.getElementById("file").files.length > 0;
 
-	  let isValid = true;
+      let isValid = true;
 
-	  // Check if purpose is selected
-	  if (!purpose) isValid = false;
+      // Check if purpose is selected
+      if (!purpose) isValid = false;
 
-	  // For specific purposes, ensure owner information is provided
-	  if (purpose === "register_pet" || purpose === "report_missing_pet") {
-		if (!ownerId || !ownerName || !ownerContact || !petName) isValid = false;
-	  }
+      // For specific purposes, ensure owner information is provided
+      if (purpose === "register_family_member" || purpose === "report_missing_family_member") {
+        if (!ownerId || !ownerName || !ownerContact || !familyMemberName) isValid = false;
+      }
 
-	  // For unregistered users, pet_name can be empty (will default to "unknown")
-	  if (purpose === "report_found_pet" && !fileInput) isValid = false;
+      // For unregistered users, family_member_name can be empty (will default to "unknown")
+      if (purpose === "report_found_family_member" && !fileInput) isValid = false;
 
-	  // Ensure an image file is selected
-	  if (!fileInput) isValid = false;
+      // Ensure an image file is selected
+      if (!fileInput) isValid = false;
 
-	  // Enable or disable the submit button based on validation
-	  document.getElementById("submitButton").disabled = !isValid;
-	}
-
+      // Enable or disable the submit button based on validation
+      document.getElementById("submitButton").disabled = !isValid;
+    }
 
     /**
      * Add event listeners to form inputs to trigger validation on input.
@@ -242,7 +248,7 @@
       }
 
       const fileInput = document.getElementById("file");
-      const petNameRaw = document.getElementById("petName").value.trim();
+      const familyMemberNameRaw = document.getElementById("familyMemberName").value.trim();
       const ownerIdRaw = document.getElementById("ownerId").value.trim();
       const ownerName = document.getElementById("ownerName").value.trim();
       const ownerContact = document.getElementById("ownerContact").value.trim();
@@ -253,17 +259,17 @@
       };
 
       const ownerId = sanitizeInput(ownerIdRaw) || "unregistered";
-	  
-	   // Conditionally set petName based on registration status
-	  let petName = sanitizeInput(petNameRaw);
-	  if (ownerId === "unregistered" && !petName) {
-		petName = "unknown";
-		console.log("Set petName to 'unknown' for unregistered user.");
-	  }
-	  
+      
+      // Conditionally set familyMemberName based on registration status
+      let familyMemberName = sanitizeInput(familyMemberNameRaw);
+      if (ownerId === "unregistered" && !familyMemberName) {
+        familyMemberName = "unknown";
+        console.log("Set familyMemberName to 'unknown' for unregistered user.");
+      }
+      
       console.log("Purpose:", purpose);
       console.log("Owner ID:", ownerId);
-      console.log("Pet Name:", petName);
+      console.log("Family Member Name:", familyMemberName);
       console.log("Owner Name:", ownerName);
       console.log("Owner Contact:", ownerContact);
 
@@ -277,7 +283,7 @@
       const file = fileInput.files[0];
 
       // Validate owner's contact email if provided
-      if ((purpose === "register_pet" || purpose === "report_missing_pet") && ownerContact && !validateEmail(ownerContact)) {
+      if ((purpose === "register_family_member" || purpose === "report_missing_family_member") && ownerContact && !validateEmail(ownerContact)) {
         alert("Please enter a valid contact email.");
         return;
       }
@@ -288,7 +294,7 @@
         document.getElementById("response").textContent = ''; // Clear previous responses
 
         // Step 1: Upload Image to S3 via PUT Request
-        const s3Response = await fetch(`${S3_ENDPOINT}?user_id=${encodeURIComponent(ownerId)}&pet_name=${encodeURIComponent(petName)}`, {
+        const s3Response = await fetch(`${S3_ENDPOINT}?user_id=${encodeURIComponent(ownerId)}&family_member_name=${encodeURIComponent(familyMemberName)}`, {
           method: 'PUT',
           headers: {
             'Content-Type': file.type, // Set the correct MIME type
@@ -307,7 +313,7 @@
         // Step 2: Save Metadata to DynamoDB via POST Request
         const metadata = {
           purpose: purpose,
-          pet_name: petName || "unknown",
+          family_member_name: familyMemberName || "unknown",
           owner_id: ownerId,
           owner_name: ownerName || "",
           owner_contact: ownerContact || "",

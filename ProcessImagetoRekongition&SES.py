@@ -20,10 +20,10 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 # Environment variables
-DYNAMODB_TABLE_NAME = os.environ.get("DYNAMODB_TABLE_NAME", "Pets")
+DYNAMODB_TABLE_NAME = os.environ.get("DYNAMODB_TABLE_NAME", "Pets")  # Keep existing table name
 REKOGNITION_COLLECTION_ID = os.environ.get("REKOGNITION_COLLECTION_ID", "HumanFacesCollection")
 SIMILARITY_THRESHOLD = float(os.environ.get("SIMILARITY_THRESHOLD", 80.0))  # Adjust as needed
-SES_SENDER_EMAIL = os.environ.get("SES_SENDER_EMAIL", "kennytwk.api+petnotification@gmail.com")  # Verified SES email
+SES_SENDER_EMAIL = os.environ.get("SES_SENDER_EMAIL", "kennytwk.api+familynotification@gmail.com")  # Verified SES email
 
 def parse_s3_url(s3_url):
     """
@@ -57,7 +57,7 @@ def get_image_from_s3(bucket, key):
 def compare_faces(image_bytes, collection_id, similarity_threshold):
     """
     Use Rekognition to compare faces in the image against the specified collection.
-    Returns a list of matches with similarity and pet_id.
+    Returns a list of matches with similarity and family_member_id.
     """
     try:
         logger.info(f"Comparing faces against collection: {collection_id} with threshold: {similarity_threshold}")
@@ -71,11 +71,11 @@ def compare_faces(image_bytes, collection_id, similarity_threshold):
         matches = []
         for match in face_matches:
             similarity = match['Similarity']
-            external_image_id = match['Face'].get('ExternalImageId')  # Retrieve pet_id
+            external_image_id = match['Face'].get('ExternalImageId')  # Retrieve family_member_id
             if external_image_id:
                 matches.append({
                     'Similarity': Decimal(str(similarity)),  # Convert float to Decimal
-                    'pet_id': external_image_id  # Include pet_id for owner retrieval
+                    'family_member_id': external_image_id  # Include family_member_id for owner retrieval
                 })
             else:
                 logger.warning("Match found without ExternalImageId.")
@@ -88,7 +88,7 @@ def compare_faces(image_bytes, collection_id, similarity_threshold):
         logger.error(f"Unexpected error in CompareFaces: {str(e)}")
         return []
 
-def index_faces(bucket, key, collection_id, pet_id):
+def index_faces(bucket, key, collection_id, family_member_id):
     """
     Index a new face into the Rekognition collection.
     """
@@ -97,7 +97,7 @@ def index_faces(bucket, key, collection_id, pet_id):
         response = rekognition.index_faces(
             CollectionId=collection_id,
             Image={'S3Object': {'Bucket': bucket, 'Name': key}},
-            ExternalImageId=pet_id,  # Use registered pet_id
+            ExternalImageId=family_member_id,  # Use registered family_member_id
             DetectionAttributes=['ALL']
         )
         face_records = response.get('FaceRecords', [])
@@ -114,7 +114,7 @@ def index_faces(bucket, key, collection_id, pet_id):
         logger.error(f"Unexpected error in IndexFaces: {str(e)}")
         return False
 
-def update_dynamodb(owner_id, pet_id, matches):
+def update_dynamodb(owner_id, family_member_id, matches):
     """
     Update the DynamoDB table with the latest face matches and timestamp.
     """
@@ -124,7 +124,7 @@ def update_dynamodb(owner_id, pet_id, matches):
         response = table.update_item(
             Key={
                 'owner_id': owner_id,
-                'pet_id': pet_id
+                'family_member_id': family_member_id
             },
             UpdateExpression="SET face_matches = :matches, updated_at = :updated_at",
             ExpressionAttributeValues={
@@ -174,10 +174,10 @@ def send_email(recipient, owner_name, subject, body, attachment_bytes, attachmen
     except Exception as e:
         logger.error(f"Unexpected error sending email via SES: {str(e)}")
 
-def get_owner_details(owner_id, pet_id):
+def get_owner_details(owner_id, family_member_id):
     """
-    Retrieve the owner's contact email and name from the Pets table based on owner_id and pet_id.
-    For unregistered users (owner_id='unregistered'), use pet_id to find the registered owner.
+    Retrieve the owner's contact email and name from the Pets table based on owner_id and family_member_id.
+    For unregistered users (owner_id='unregistered'), use family_member_id to find the registered owner.
     """
     try:
         pets_table = dynamodb.Table(DYNAMODB_TABLE_NAME)  # Should be 'Pets'
@@ -187,14 +187,14 @@ def get_owner_details(owner_id, pet_id):
             response = pets_table.get_item(
                 Key={
                     'owner_id': owner_id,
-                    'pet_id': pet_id
+                    'family_member_id': family_member_id
                 }
             )
         else:
-            # Unregistered user report - find registered owner via pet_id using GSI
+            # Unregistered user report - find registered owner via family_member_id using GSI
             response = pets_table.query(
-                IndexName='pet_id-index',  # Ensure this matches your GSI name
-                KeyConditionExpression=boto3.dynamodb.conditions.Key('pet_id').eq(pet_id)
+                IndexName='family_member_id-index',  # Ensure this matches your GSI name
+                KeyConditionExpression=boto3.dynamodb.conditions.Key('family_member_id').eq(family_member_id)
             )
         
         if 'Item' in response:
@@ -202,30 +202,30 @@ def get_owner_details(owner_id, pet_id):
             owner_contact = item.get('owner_contact')
             owner_name = item.get('owner_name')
             if owner_contact and owner_name:
-                logger.info(f"Retrieved owner_contact: {owner_contact} and owner_name: {owner_name} for owner_id: {owner_id}, pet_id: {pet_id}.")
+                logger.info(f"Retrieved owner_contact: {owner_contact} and owner_name: {owner_name} for owner_id: {owner_id}, family_member_id: {family_member_id}.")
                 return {
                     'email': owner_contact,
                     'name': owner_name
                 }
             else:
-                logger.error(f"Missing owner_contact or owner_name for owner_id: {owner_id}, pet_id: {pet_id}")
+                logger.error(f"Missing owner_contact or owner_name for owner_id: {owner_id}, family_member_id: {family_member_id}")
                 return None
         elif 'Items' in response and response['Items']:
             # Handling query response for unregistered user
-            item = response['Items'][0]  # Assuming pet_id is unique
+            item = response['Items'][0]  # Assuming family_member_id is unique
             owner_contact = item.get('owner_contact')
             owner_name = item.get('owner_name')
             if owner_contact and owner_name:
-                logger.info(f"Retrieved owner_contact: {owner_contact} and owner_name: {owner_name} for pet_id: {pet_id}.")
+                logger.info(f"Retrieved owner_contact: {owner_contact} and owner_name: {owner_name} for family_member_id: {family_member_id}.")
                 return {
                     'email': owner_contact,
                     'name': owner_name
                 }
             else:
-                logger.error(f"Missing owner_contact or owner_name for pet_id: {pet_id}")
+                logger.error(f"Missing owner_contact or owner_name for family_member_id: {family_member_id}")
                 return None
         else:
-            logger.error(f"No item found for owner_id: {owner_id}, pet_id: {pet_id}")
+            logger.error(f"No item found for owner_id: {owner_id}, family_member_id: {family_member_id}")
             return None
     except ClientError as e:
         logger.error(f"DynamoDB ClientError while retrieving owner details: {e.response['Error']['Message']}")
@@ -244,10 +244,10 @@ def lambda_handler(event, context):
             message_body = json.loads(record['body'])
             logger.info(f"Processing message: {message_body}")
             owner_id = message_body.get('owner_id')
-            pet_id = message_body.get('pet_id')
+            family_member_id = message_body.get('family_member_id')  # Changed to family_member_id
             image_url = message_body.get('image_url')
             purpose = message_body.get('purpose')
-            pet_name = message_body.get('pet_name')
+            family_member_name = message_body.get('family_member_name')  # Changed to family_member_name
 
             # Validate required fields
             if not all([image_url, purpose]):
@@ -274,30 +274,30 @@ def lambda_handler(event, context):
                 if not matches:
                     # **No Match Found:** Index the new face
                     logger.info("No matching faces found. Indexing the new face.")
-                    indexing_success = index_faces(bucket, key, REKOGNITION_COLLECTION_ID, pet_id)
+                    indexing_success = index_faces(bucket, key, REKOGNITION_COLLECTION_ID, family_member_id)
                     if indexing_success:
                         logger.info("Successfully indexed the new face.")
                         # **Notify Owner About Indexing**
-                        owner_details = get_owner_details(owner_id, pet_id)
+                        owner_details = get_owner_details(owner_id, family_member_id)
                         if owner_details:
                             send_email(
                                 recipient=owner_details['email'],
                                 owner_name=owner_details['name'],
-                                subject="Pet Processing Update: New Face Indexed",
-                                body=f"Dear {owner_details['name']},\n\nYour pet '{pet_name}' has been successfully processed. A new face has been indexed for future recognition.\n\nBest Regards,\nPetDetectives Team",
+                                subject="Family Member Processing Update: New Face Indexed",
+                                body=f"Dear {owner_details['name']},\n\nYour family member '{family_member_name}' has been successfully processed. A new face has been indexed for future recognition.\n\nBest Regards,\nFamilyFinders Team",
                                 attachment_bytes=image_bytes,
                                 attachment_filename=key.split('/')[-1]  # Extract filename from key
                             )
                     else:
                         logger.error("Failed to index the new face.")
                         # **Notify Owner About Error**
-                        owner_details = get_owner_details(owner_id, pet_id)
+                        owner_details = get_owner_details(owner_id, family_member_id)
                         if owner_details:
                             send_email(
                                 recipient=owner_details['email'],
                                 owner_name=owner_details['name'],
-                                subject="Pet Processing Error: Face Indexing Failed",
-                                body=f"Dear {owner_details['name']},\n\nThere was an error indexing your pet '{pet_name}'s face for future recognition.\n\nPlease try processing the image again.\n\nBest Regards,\nPetDetectives Team",
+                                subject="Family Member Processing Error: Face Indexing Failed",
+                                body=f"Dear {owner_details['name']},\n\nThere was an error indexing your family member '{family_member_name}'s face for future recognition.\n\nPlease try processing the image again.\n\nBest Regards,\nFamilyFinders Team",
                                 attachment_bytes=image_bytes,
                                 attachment_filename=key.split('/')[-1]
                             )
@@ -305,53 +305,53 @@ def lambda_handler(event, context):
                     # **Match Found:** Notify the owner
                     logger.info(f"Found {len(matches)} matching face(s). No indexing needed.")
                     for match in matches:
-                        matched_pet_id = match.get('pet_id')
+                        matched_family_member_id = match.get('family_member_id')  # Updated to family_member_id
                         similarity = match.get('Similarity')
-                        if not matched_pet_id:
-                            logger.error("Matched pet_id is missing. Skipping this match.")
+                        if not matched_family_member_id:
+                            logger.error("Matched family_member_id is missing. Skipping this match.")
                             continue
-                        owner_details = get_owner_details("unregistered", matched_pet_id)
+                        owner_details = get_owner_details("unregistered", matched_family_member_id)
                         if owner_details:
                             send_email(
                                 recipient=owner_details['email'],
                                 owner_name=owner_details['name'],
-                                subject="Pet Processing Update: Pet Found",
-                                body=f"Dear {owner_details['name']},\n\nGreat news! Your pet '{pet_name}' has been found with a confidence level of {similarity:.2f}%.\n\nBest Regards,\nPetDetectives Team",
+                                subject="Family Member Processing Update: Family Member Found",
+                                body=f"Dear {owner_details['name']},\n\nGreat news! Your family member '{family_member_name}' has been found with a confidence level of {similarity:.2f}%.\n\nBest Regards,\nFamilyFinders Team",
                                 attachment_bytes=image_bytes,
                                 attachment_filename=key.split('/')[-1]
                             )
                         else:
-                            logger.error(f"Could not retrieve owner details for matched_pet_id: {matched_pet_id}")
+                            logger.error(f"Could not retrieve owner details for matched_family_member_id: {matched_family_member_id}")
             else:
                 # **Unregistered User Report**
                 if matches:
                     # **Match Found:** Notify the registered owner
                     logger.info(f"Found {len(matches)} matching face(s). Notifying registered owners.")
                     for match in matches:
-                        matched_pet_id = match.get('pet_id')
+                        matched_family_member_id = match.get('family_member_id')  # Updated to family_member_id
                         similarity = match.get('Similarity')
-                        if not matched_pet_id:
-                            logger.error("Matched pet_id is missing. Skipping this match.")
+                        if not matched_family_member_id:
+                            logger.error("Matched family_member_id is missing. Skipping this match.")
                             continue
-                        owner_details = get_owner_details("unregistered", matched_pet_id)
+                        owner_details = get_owner_details("unregistered", matched_family_member_id)
                         if owner_details:
                             send_email(
                                 recipient=owner_details['email'],
                                 owner_name=owner_details['name'],
-                                subject="Pet Processing Update: Pet Found",
-                                body=f"Dear {owner_details['name']},\n\nA pet matching your missing pet '{pet_name}' has been found with a confidence level of {similarity:.2f}%.\n\nBest Regards,\nPetDetectives Team",
+                                subject="Family Member Processing Update: Family Member Found",
+                                body=f"Dear {owner_details['name']},\n\nA family member matching your missing family member '{family_member_name}' has been found with a confidence level of {similarity:.2f}%.\n\nBest Regards,\nFamilyFinders Team",
                                 attachment_bytes=image_bytes,
                                 attachment_filename=key.split('/')[-1]
                             )
                         else:
-                            logger.error(f"Could not retrieve owner details for matched_pet_id: {matched_pet_id}")
+                            logger.error(f"Could not retrieve owner details for matched_family_member_id: {matched_family_member_id}")
                 else:
                     # **No Match Found:** Do not index unregistered reports
                     logger.info("No matching faces found. No indexing for unregistered user report.")
                     # Optionally, notify admin or take other actions
 
             # **Update DynamoDB Regardless of Owner Type**
-            update_dynamodb(owner_id, pet_id, matches)
+            update_dynamodb(owner_id, family_member_id, matches)  # Updated to family_member_id
             logger.info("Successfully processed and updated DynamoDB.")
 
         except Exception as e:
