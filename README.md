@@ -137,6 +137,9 @@ This project primarily aims to showcase AWS knowledge in a small, production-lik
    - POST request to store metadata in DynamoDB.
 5. The combined JSON from S3 + DynamoDB appears, indicating success or error.
 
+# Demo
+<img width="2850" height="1328" alt="Demo-static-website" src="https://github.com/user-attachments/assets/b54d5a6f-5a8c-4881-a352-bf64c466a8ad" />
+
 # Limitations & Future Improvements
 - 10 MB Payload Limit in API Gateway: big images may fail unless further compressed or using presigned URLs.
 - Security: CORS policy helps, but for real DDoS protection, consider AWS WAF or AWS Shield.
