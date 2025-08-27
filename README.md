@@ -10,6 +10,8 @@ SG-Find is a serverless solution for registering and locating missing family mem
 
 [Usage](https://github.com/T4ctician/sg-find/tree/main?tab=readme-ov-file#usage)
 
+[Demo](https://github.com/T4ctician/sg-find/blob/main/README.md#demo)
+
 [Limitations & Future Improvements](https://github.com/T4ctician/sg-find/tree/main?tab=readme-ov-file#limitations--future-improvements)
 
 [License](https://github.com/T4ctician/sg-find/tree/main?tab=readme-ov-file#license)
